@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* StudyDuel palette — pure black canvas, warm charcoal cards, cream ink, coral + gold accents. */
+@layer base {
+  :root {
+    --background: 39 43% 94%;
+    --foreground: 30 13% 9%;
+    --card: 37 100% 98%;
+    --card-foreground: 30 13% 9%;
+    --popover: 37 100% 98%;
+    --popover-foreground: 30 13% 9%;
+    --primary: 30 13% 9%;
+    --primary-foreground: 38 50% 94%;
+    --secondary: 37 28% 88%;
+    --secondary-foreground: 30 13% 9%;
+    --muted: 37 30% 89%;
+    --muted-foreground: 33 9% 40%;
+    --accent: 37 28% 88%;
+    --accent-foreground: 30 13% 9%;
+    --destructive: 7 72% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 37 26% 83%;
+    --input: 37 26% 80%;
+    --ring: 10 82% 58%;
+    --radius: 1.5rem;
+
+    --coral: 10 78% 56%;
+    --coral-soft: 12 70% 90%;
+    --gold: 38 80% 42%;
+    --gold-soft: 42 70% 88%;
+    --ocean: 208 45% 88%;
+    --moss: 90 25% 87%;
+    --plum: 271 30% 90%;
+    --wine: 5 55% 91%;
+    --success: 145 55% 36%;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 38 50% 92%;
+    --card: 36 10% 10%;
+    --card-foreground: 38 50% 92%;
+    --popover: 36 10% 9%;
+    --popover-foreground: 38 50% 92%;
+    --primary: 38 50% 92%;
+    --primary-foreground: 30 11% 4%;
+    --secondary: 34 9% 15%;
+    --secondary-foreground: 38 50% 92%;
+    --muted: 30 9% 14%;
+    --muted-foreground: 36 8% 60%;
+    --accent: 34 9% 16%;
+    --accent-foreground: 38 50% 92%;
+    --destructive: 7 85% 65%;
+    --destructive-foreground: 0 0% 0%;
+    --border: 33 9% 19%;
+    --input: 33 9% 22%;
+    --ring: 10 82% 62%;
+
+    --coral: 10 82% 62%;
+    --coral-soft: 0 27% 20%;
+    --gold: 41 76% 60%;
+    --gold-soft: 41 49% 15%;
+    --ocean: 208 45% 22%;
+    --moss: 93 17% 17%;
+    --plum: 271 21% 20%;
+    --wine: 355 26% 19%;
+    --success: 145 50% 62%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'ss01';
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: hsl(var(--coral) / 0.35);
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-3xl border bg-card text-card-foreground;
+  }
+  .dashed-card {
+    @apply rounded-3xl border-2 border-dashed border-border/80 bg-transparent;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+  .chip-gold {
+    @apply chip bg-gold-soft text-gold;
+  }
+  .chip-coral {
+    @apply chip bg-coral-soft text-coral;
+  }
+  .chip-muted {
+    @apply chip bg-secondary text-muted-foreground;
+  }
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+  .prose-study p {
+    @apply mb-4 leading-8 text-[1.02rem];
+  }
+  .prose-study strong {
+    @apply font-semibold text-coral;
+  }
+  .reading-active {
+    @apply rounded-md bg-gold-soft text-foreground;
+    box-shadow: 0 0 0 4px hsl(var(--gold-soft));
+  }
+  .urdu {
+    font-family: 'Noto Nastaliq Urdu', serif;
+    line-height: 2.4;
+    direction: rtl;
+  }
+  .glow-coral {
+    box-shadow: 0 10px 40px -12px hsl(var(--coral) / 0.55);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .perspective {
+    perspective: 1200px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .mermaid-wrap svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #999 !important;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

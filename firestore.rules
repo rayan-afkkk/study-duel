@@ -1,0 +1,119 @@
+rules_version = '2';
+
+// StudyDuel — Firestore is used ONLY for groups, members, live battles, doubts, focus room and call signaling.
+// Rule of thumb: only members of a group can read or write anything under groups/{gid}.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
+    function isMember(gid) { return signedIn() && me() in get(groupPath(gid)).data.memberIds; }
+    // membership as it will be after this write/batch (used when joining)
+    function isMemberAfter(gid) { return signedIn() && me() in getAfter(groupPath(gid)).data.memberIds; }
+
+    // Invite code → group id lookup. Anyone signed in can resolve a code they know (no listing).
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.createdBy == me()
+        && getAfter(groupPath(request.resource.data.groupId)).data.ownerId == me();
+      allow update: if false;
+      allow delete: if isMember(resource.data.groupId);
+    }
+
+    match /groups/{gid} {
+      allow read: if signedIn() && me() in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == me()
+        && request.resource.data.memberIds == [me()]
+        && request.resource.data.inviteCode is string;
+
+      allow update: if signedIn() && (
+        // 1) members edit group fields (e.g. activeBattleId) without touching membership
+        (me() in resource.data.memberIds
+          && request.resource.data.memberIds == resource.data.memberIds
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.inviteCode == resource.data.inviteCode)
+        // 2) join: a non-member may add ONLY themselves, and the group caps at 3 members
+        || (!(me() in resource.data.memberIds)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+          && me() in request.resource.data.memberIds
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+          && request.resource.data.memberIds.size() <= 3)
+        // 3) leave: a member removes ONLY themselves (ownership may pass to a remaining member)
+        || (me() in resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'ownerId'])
+          && !(me() in request.resource.data.memberIds)
+          && resource.data.memberIds.hasAll(request.resource.data.memberIds)
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1
+          && (request.resource.data.ownerId == resource.data.ownerId
+              || request.resource.data.ownerId in request.resource.data.memberIds))
+      );
+
+      // the last member leaving deletes the group
+      allow delete: if signedIn() && me() in resource.data.memberIds && resource.data.memberIds.size() == 1;
+
+      // Member profiles + weekly stats + focus presence: everyone in the group reads, you write your own.
+      match /members/{memberId} {
+        allow read: if isMember(gid);
+        allow create, update: if signedIn() && memberId == me() && isMemberAfter(gid);
+        allow delete: if signedIn() && memberId == me();
+      }
+
+      // Shared study material (document text + flashcards)
+      match /shared/{id} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.sharedBy == me();
+        allow update: if false;
+        allow delete: if isMember(gid) && resource.data.sharedBy == me();
+      }
+
+      // Live battles: the battle doc is a shared state machine; each player writes only their own answers.
+      match /battles/{bid} {
+        allow read, write: if isMember(gid);
+        match /players/{pid} {
+          allow read: if isMember(gid);
+          allow create, update: if isMember(gid) && pid == me();
+          allow delete: if false;
+        }
+      }
+
+      // Doubt board: AI answer is written by the doubt's author; anyone in the group can reply.
+      match /doubts/{did} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.authorId == me();
+        allow update, delete: if isMember(gid) && resource.data.authorId == me();
+        match /replies/{rid} {
+          allow read: if isMember(gid);
+          allow create: if isMember(gid) && request.resource.data.authorId == me();
+          allow delete: if isMember(gid) && resource.data.authorId == me();
+        }
+      }
+
+      // Shared Pomodoro timer
+      match /focus/{docId} {
+        allow read, write: if isMember(gid);
+      }
+
+      // WebRTC signaling (offers / answers / ICE candidates). Cleaned up when the call ends.
+      match /calls/{callId} {
+        allow read, write: if isMember(gid);
+        match /participants/{pid} {
+          allow read: if isMember(gid);
+          allow create, update: if isMember(gid) && pid == me();
+          allow delete: if isMember(gid); // stale-participant cleanup
+        }
+        match /signals/{sid} {
+          allow read: if isMember(gid);
+          allow create: if isMember(gid) && request.resource.data.from == me();
+          allow delete: if isMember(gid); // last one out clears the call
+          allow update: if false;
+        }
+      }
+    }
+  }
+}
