@@ -16,13 +16,27 @@ import {
 import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 
+/**
+ * Public Firebase web config (safe to ship — access is enforced by firestore.rules).
+ * Env vars override these defaults; empty env vars (e.g. blank entries copied from .env.example) are ignored.
+ */
+const DEFAULT_CONFIG = {
+  apiKey: 'AIzaSyBFGyufDob1sIBhqPc4uPzgAithoAMJiwk',
+  authDomain: 'studyduel-88d3e.firebaseapp.com',
+  projectId: 'studyduel-88d3e',
+  storageBucket: 'studyduel-88d3e.firebasestorage.app',
+  messagingSenderId: '218566633142',
+  appId: '1:218566633142:web:a359f9e7e9c9babea22817',
+}
+const env = (v: string | undefined, fallback: string) => (v && v.trim() ? v.trim() : fallback)
+
 const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: env(import.meta.env.VITE_FIREBASE_API_KEY, DEFAULT_CONFIG.apiKey),
+  authDomain: env(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN, DEFAULT_CONFIG.authDomain),
+  projectId: env(import.meta.env.VITE_FIREBASE_PROJECT_ID, DEFAULT_CONFIG.projectId),
+  storageBucket: env(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, DEFAULT_CONFIG.storageBucket),
+  messagingSenderId: env(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, DEFAULT_CONFIG.messagingSenderId),
+  appId: env(import.meta.env.VITE_FIREBASE_APP_ID, DEFAULT_CONFIG.appId),
 }
 
 /** Local testing without a Firebase project: `firebase emulators:start --only auth,firestore` + VITE_FIREBASE_EMULATORS=true */
