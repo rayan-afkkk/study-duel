@@ -50,10 +50,16 @@ export default function App() {
     return () => window.removeEventListener(PROGRESS_EVENT, onProgress)
   }, [])
 
-  useEffect(() => window.scrollTo(0, 0), [location.pathname])
+  useEffect(() => {
+    // braces matter: some browsers/extensions make scrollTo return a value, which React would then
+    // call as a cleanup function on the next page change ("l is not a function")
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   // Download every page in the background after first load, so switching pages is instant.
-  useEffect(() => preloadPages(), [])
+  useEffect(() => {
+    preloadPages()
+  }, [])
 
   const bare = location.pathname === '/' || location.pathname.startsWith('/battle/')
 

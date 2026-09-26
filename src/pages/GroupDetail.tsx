@@ -41,7 +41,10 @@ function GroupInner({ gid, uid }: { gid: string; uid: string }) {
   const [qr, setQr] = useState(false)
   const tab = params.get('tab') ?? 'battle'
 
-  useEffect(() => watchCall(gid, setInCallCount), [gid])
+  useEffect(() => {
+    const unsubscribe = watchCall(gid, setInCallCount)
+    return () => unsubscribe()
+  }, [gid])
   useEffect(() => {
     syncMyStats().catch(() => {})
   }, [])

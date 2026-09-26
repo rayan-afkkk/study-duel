@@ -23,7 +23,10 @@ export function TeacherAvatar({
   const [blink, setBlink] = useState(false)
 
   useEffect(() => {
-    if (!speaking) return setMouth(0.1)
+    if (!speaking) {
+      setMouth(0.1)
+      return
+    }
     const t = setInterval(() => setMouth(0.2 + Math.random() * 0.8), 110)
     return () => clearInterval(t)
   }, [speaking])
