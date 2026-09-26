@@ -162,6 +162,21 @@ export const SIMS: SimDef[] = [
   },
 ]
 
+/**
+ * Animations clearly related to a chapter's text, best first. A sim counts only if the chapter mentions at
+ * least `minDistinct` DIFFERENT of its key terms (one stray word like "gases" is not enough).
+ */
+export function relatedSims(text: string, minDistinct = 3) {
+  const t = text.toLowerCase()
+  return SIMS.map((s) => {
+    const hits = s.keywords.map((k) => t.split(k).length - 1)
+    return { s, distinct: hits.filter((h) => h > 0).length, total: hits.reduce((a, b) => a + b, 0) }
+  })
+    .filter((x) => x.distinct >= minDistinct)
+    .sort((a, b) => b.distinct - a.distinct || b.total - a.total)
+    .map((x) => x.s)
+}
+
 export function pickByKeywords(text: string) {
   const t = text.toLowerCase()
   let best = SIMS[0]
