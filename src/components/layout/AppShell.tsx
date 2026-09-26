@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               {({ isActive }) => (
                 <>
-                  {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-2xl bg-secondary" transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }} />}
+                  {isActive && <span className="absolute inset-0 rounded-2xl bg-secondary animate-in fade-in-0 duration-200" />}
                   <Icon className="relative h-5 w-5" strokeWidth={isActive ? 2.4 : 1.8} />
                   <span className="relative">{label}</span>
                 </>

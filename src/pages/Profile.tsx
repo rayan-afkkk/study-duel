@@ -13,6 +13,40 @@ import { loadDemoData, DEMO_ID } from '@/lib/demo'
 import { db } from '@/lib/db'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { clearErrors, getErrors } from '@/lib/errorLog'
+import { useState } from 'react'
+
+function Diagnostics() {
+  const [errors, setErrors] = useState(getErrors)
+  if (!errors.length) return null
+  return (
+    <div className="mt-10">
+      <p className="section-label mb-3">Diagnostics</p>
+      <div className="surface space-y-3 p-5">
+        <p className="text-sm text-muted-foreground">The app recovered from these problems automatically. A screenshot of this box helps fix them.</p>
+        {errors.map((e, i) => (
+          <div key={i} className="rounded-2xl bg-secondary/60 p-3 font-mono text-[11px] leading-relaxed">
+            <p className="text-coral">
+              [{e.where}] {new Date(e.at).toLocaleString()} · {e.path}
+            </p>
+            <p className="break-words text-foreground">{e.message}</p>
+            {e.stack && <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-muted-foreground">{e.stack}</pre>}
+          </div>
+        ))}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            clearErrors()
+            setErrors([])
+          }}
+        >
+          Clear
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 function Row({ icon, title, sub, onClick, danger }: { icon: React.ReactNode; title: string; sub?: string; onClick: () => void; danger?: boolean }) {
   return (
@@ -133,6 +167,7 @@ export default function Profile() {
         {user && <Row icon={<LogOut />} title="Sign out" danger onClick={() => signOut()} />}
         <Row icon={<Trash2 />} title="Delete local data" danger onClick={clearAll} />
       </div>
+      <Diagnostics />
     </div>
   )
 }

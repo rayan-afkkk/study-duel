@@ -57,10 +57,11 @@ export default function App() {
 
   const bare = location.pathname === '/' || location.pathname.startsWith('/battle/')
 
-  // Suspense + ErrorBoundary sit INSIDE the shell (so the sidebar never disappears while a page loads),
-  // and the boundary is keyed by path so an error on one page never sticks to the next one.
+  // Suspense + ErrorBoundary sit INSIDE the shell (so the sidebar never disappears while a page loads).
+  // The boundary stays mounted across page changes (so it also catches errors while the old page is torn
+  // down) and simply resets when the URL changes.
   const routes = (
-    <ErrorBoundary key={location.pathname}>
+    <ErrorBoundary resetKey={location.pathname}>
       <Suspense fallback={<Fallback />}>
       <Routes>
         <Route path="/" element={<Landing />} />
