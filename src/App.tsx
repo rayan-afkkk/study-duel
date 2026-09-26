@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Toaster } from 'sonner'
 import { AppShell } from './components/layout/AppShell'
 import { DocViewerProvider } from './components/DocViewer'
@@ -11,22 +11,24 @@ import { PROGRESS_EVENT } from './lib/progress'
 import { scheduleStatsSync } from './lib/groups'
 import { useSettings } from './lib/settings'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { lazyPage, preloadPages } from './lib/lazyPage'
 
-const Landing = lazy(() => import('./pages/Landing'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Workspace = lazy(() => import('./pages/Workspace'))
-const StudyPlan = lazy(() => import('./pages/StudyPlan'))
-const Mistakes = lazy(() => import('./pages/Mistakes'))
-const Groups = lazy(() => import('./pages/Groups'))
-const GroupDetail = lazy(() => import('./pages/GroupDetail'))
-const LiveBattle = lazy(() => import('./pages/LiveBattle'))
-const Join = lazy(() => import('./pages/Join'))
-const Profile = lazy(() => import('./pages/Profile'))
-const NotFound = lazy(() => import('./pages/NotFound'))
+const Landing = lazyPage(() => import('./pages/Landing'))
+const Dashboard = lazyPage(() => import('./pages/Dashboard'))
+const Workspace = lazyPage(() => import('./pages/Workspace'))
+const StudyPlan = lazyPage(() => import('./pages/StudyPlan'))
+const Mistakes = lazyPage(() => import('./pages/Mistakes'))
+const Groups = lazyPage(() => import('./pages/Groups'))
+const GroupDetail = lazyPage(() => import('./pages/GroupDetail'))
+const LiveBattle = lazyPage(() => import('./pages/LiveBattle'))
+const Join = lazyPage(() => import('./pages/Join'))
+const Profile = lazyPage(() => import('./pages/Profile'))
+const NotFound = lazyPage(() => import('./pages/NotFound'))
 
+/** Enter-only page animation: the new page appears immediately (no waiting for the old one to fade out). */
 function Page({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }}>
       {children}
     </motion.div>
   )
@@ -50,11 +52,17 @@ export default function App() {
 
   useEffect(() => window.scrollTo(0, 0), [location.pathname])
 
+  // Download every page in the background after first load, so switching pages is instant.
+  useEffect(() => preloadPages(), [])
+
   const bare = location.pathname === '/' || location.pathname.startsWith('/battle/')
 
+  // Suspense + ErrorBoundary sit INSIDE the shell (so the sidebar never disappears while a page loads),
+  // and the boundary is keyed by path so an error on one page never sticks to the next one.
   const routes = (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <ErrorBoundary key={location.pathname}>
+      <Suspense fallback={<Fallback />}>
+      <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<Page><Dashboard /></Page>} />
         <Route path="/doc/:id" element={<Page><Workspace /></Page>} />
@@ -68,16 +76,15 @@ export default function App() {
         <Route path="/profile" element={<Page><Profile /></Page>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </AnimatePresence>
+      </Suspense>
+    </ErrorBoundary>
   )
 
   return (
     <TooltipProvider delayDuration={200}>
       <DocViewerProvider>
         <CallProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<Fallback />}>{bare ? routes : <AppShell>{routes}</AppShell>}</Suspense>
-          </ErrorBoundary>
+          {bare ? routes : <AppShell>{routes}</AppShell>}
           <Toaster
             theme={theme === 'light' ? 'light' : 'dark'}
             position="top-center"
