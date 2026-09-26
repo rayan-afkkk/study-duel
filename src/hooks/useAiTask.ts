@@ -12,7 +12,13 @@ export function useAiTask<T extends AiTask>(
   task: T,
   docId: string | undefined,
   params: Record<string, unknown>,
-  opts: { auto?: boolean; extra?: Record<string, unknown>; onData?: (d: TaskDataMap[T]) => void } = {},
+  opts: {
+    auto?: boolean
+    extra?: Record<string, unknown>
+    /** extra payload computed right before generating (not part of the cache key) */
+    extraAsync?: () => Promise<Record<string, unknown>>
+    onData?: (d: TaskDataMap[T]) => void
+  } = {},
 ) {
   const [status, setStatus] = useState<AiStatus>('idle')
   const [data, setData] = useState<TaskDataMap[T] | undefined>()
@@ -29,7 +35,8 @@ export function useAiTask<T extends AiTask>(
       setStatus('loading')
       setError(undefined)
       try {
-        const d = await generate(task, { docId, params: JSON.parse(paramsKey), extra: optsRef.current.extra, force })
+        const extra = { ...optsRef.current.extra, ...(await optsRef.current.extraAsync?.()) }
+        const d = await generate(task, { docId, params: JSON.parse(paramsKey), extra, force })
         if (id !== reqId.current) return
         setData(d)
         setStatus('success')

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import type { User } from 'firebase/auth'
 import { db } from '@/lib/db'
 import { generate } from '@/lib/aiClient'
+import { avoidFor } from '@/lib/questions'
 import { P } from '@/lib/params'
 import { getSettings } from '@/lib/settings'
 import { createBattle } from '@/lib/groups'
@@ -29,7 +30,8 @@ export function BattleLauncher({ gid, user, activeBattleId }: { gid: string; use
     setBusy(true)
     try {
       const d = await db.documents.get(chosen)
-      const mcqs = await generate('mcqs', { docId: chosen, params: P.mcqs(getSettings()) })
+      const st = getSettings()
+      const mcqs = await generate('mcqs', { docId: chosen, params: P.mcqs(st, 'battle'), extra: await avoidFor(chosen, st, 'battle') })
       const qs = shuffle(mcqs.questions).slice(0, Number(count))
       const bid = await createBattle(gid, user, d?.title ?? 'Live battle', qs, Number(secs))
       nav(`/battle/${gid}/${bid}`)

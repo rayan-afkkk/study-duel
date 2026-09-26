@@ -43,6 +43,22 @@ function levelRule(d: Difficulty = 'medium', m: StudyMode = 'concept') {
   return `${diff}\n${mode}`
 }
 
+/** Different question sets for each game so the MCQ test, boss battle, voice quiz and live battle don't repeat. */
+const MCQ_STYLES: Record<string, string> = {
+  test: 'Style: a balanced exam-style test covering every topic (definitions, understanding and application).',
+  boss: 'Style: BOSS BATTLE — challenging APPLICATION and reasoning questions: short numericals, "what happens if…", real-life scenarios, and common misconceptions. No simple definition recall.',
+  voice: 'Style: VOICE QUIZ — questions will be READ ALOUD and answered by voice. Keep each question under 20 words; options 1–4 words each; no symbols or formulas that are hard to say; never "all/none of the above".',
+  battle: 'Style: LIVE BATTLE — quick-fire, fun questions answerable within 15 seconds, varied across the chapter.',
+}
+
+const avoidRule = (avoid: unknown) =>
+  Array.isArray(avoid) && avoid.length
+    ? `\nDo NOT repeat or rephrase any of these existing questions — ask about different facts or angles:\n${avoid
+        .slice(0, 40)
+        .map((q) => `- ${String(q).slice(0, 140)}`)
+        .join('\n')}`
+    : ''
+
 const common = (p: Payload) => `${languageRule(p.language)}\n${levelRule(p.difficulty, p.mode)}`
 const n = (v: unknown, d: number) => (typeof v === 'number' && v > 0 ? Math.min(v, 60) : d)
 
@@ -78,6 +94,8 @@ ${common(p)}
       system: TEACHER,
       user: `Create ${n(p.count, 15)} high-quality flashcards from the chapter.
 ${common(p)}
+Flashcards test RECALL, not multiple choice. Mix these kinds: key term → definition, formula → what each symbol means + unit,
+"why…?" questions, "difference between X and Y", and a real-life example to identify. Cover the WHOLE chapter evenly.
 "front": a clear question or term (short). "back": concise answer (1–3 sentences). "page": source page number.`,
     }),
   },
@@ -88,9 +106,10 @@ ${common(p)}
       system: TEACHER,
       user: `Create ${n(p.count, 10)} multiple-choice questions from the chapter.
 ${common(p)}
+${MCQ_STYLES[String(p.variant ?? 'test')] ?? MCQ_STYLES.test}
 Each has exactly 4 options, "answerIndex" (0-based) of the single correct option, plausible distractors,
 "explanation" explaining why the answer is right and the common mistake, "page" (source page), and "topic" (short topic name).
-Vary the position of the correct answer.`,
+Vary the position of the correct answer.${avoidRule(p.avoid)}`,
     }),
   },
   guessPaper: {
@@ -190,6 +209,27 @@ Compare with the chapter. "score" 0–10, "verdict" one encouraging sentence, "c
     build: () => ({
       system: 'You are a precise OCR engine for textbook pages.',
       user: 'Extract ALL text from the photo of a book page in reading order. Keep headings on their own lines. Describe any diagrams in one line as [Diagram: ...]. Return {"text": "..."}.',
+    }),
+  },
+  experiment: {
+    temperature: 0.4,
+    usesContext: true,
+    build: (p) => ({
+      system: `${TEACHER}\nYou are also a creative science lab designer who builds interactive virtual experiments.`,
+      user: `Design ONE interactive virtual experiment specifically for THIS chapter (not a generic one).
+${languageRule(p.language)}
+If the chapter has a quantitative relationship (physics, chemistry, biology rates, maths, economics…), set "applicable": true and:
+- "variables": 2–4 sliders the student can change, each {id (short lowercase identifier like "mass"), label, unit, min, max, step, value}.
+- "outputs": 1–3 computed results, each {id, label, unit, formula, explain}. "formula" is a JavaScript-style math expression using ONLY
+  the variable ids, numbers, + - * / ^ ( ), and functions sin cos tan sqrt abs log log10 exp min max pow, constants PI and E,
+  and rad(x) to convert degrees to radians. Example: "force / mass" or "max(0, (force - mu*mass*9.8) / mass)".
+- "chart": {x: a variable id, y: an output id} — the relationship worth graphing.
+- "steps": 3–5 guided steps ("Set mass to 2 kg, then double the force. What happens to acceleration?").
+- "questions": 2–3 {q, a} thinking questions about what the student observed.
+If the chapter is NOT quantitative (history, literature, languages, most social studies), set "applicable": false, leave variables/outputs empty,
+and instead give "activity": 4–6 steps of a hands-on classroom/home activity or mini-investigation for this chapter.
+Always give "title", "goal" (what the student will discover) and "background" (2–3 sentences).
+"simulationId": if one of these built-in animations truly matches the chapter, give its id, else null: ${JSON.stringify(p.simulations ?? [])}.`,
     }),
   },
   pickSimulation: {

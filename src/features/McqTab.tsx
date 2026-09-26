@@ -3,9 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, Clock, Play, RefreshCw, Trophy, XCircle } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import type { StudyDoc } from '@/lib/db'
-import { useAiTask } from '@/hooks/useAiTask'
-import { useSettings } from '@/lib/settings'
-import { P } from '@/lib/params'
+import { useMcqSet } from '@/lib/questions'
 import { AsyncState } from '@/components/AsyncState'
 import { PageBadge } from '@/components/DocViewer'
 import { Button } from '@/components/ui/button'
@@ -21,8 +19,7 @@ import type { Mcq } from '@shared/schemas'
 type Phase = 'setup' | 'test' | 'result'
 
 export function McqTab({ doc }: { doc: StudyDoc }) {
-  const s = useSettings()
-  const ai = useAiTask('mcqs', doc.id, P.mcqs(s), { auto: true })
+  const ai = useMcqSet(doc.id, 'test')
   const [phase, setPhase] = useState<Phase>('setup')
   const [secsPerQ, setSecsPerQ] = useState('45')
   const [answers, setAnswers] = useState<(number | null)[]>([])

@@ -3,9 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, Mic, Play, SkipForward, Volume2, XCircle } from 'lucide-react'
 import type { StudyDoc } from '@/lib/db'
 import type { Mcq } from '@shared/schemas'
-import { useAiTask } from '@/hooks/useAiTask'
+import { useMcqSet } from '@/lib/questions'
 import { useSettings } from '@/lib/settings'
-import { P } from '@/lib/params'
 import { AsyncState } from '@/components/AsyncState'
 import { Button } from '@/components/ui/button'
 import { TeacherAvatar } from '@/components/TeacherAvatar'
@@ -42,7 +41,7 @@ export function matchSpoken(said: string, options: string[]): number | null {
 
 export function VoiceQuiz({ doc }: { doc: StudyDoc }) {
   const s = useSettings()
-  const ai = useAiTask('mcqs', doc.id, P.mcqs(s), { auto: true })
+  const ai = useMcqSet(doc.id, 'voice')
   const [qs, setQs] = useState<Mcq[]>([])
   const [i, setI] = useState(-1)
   const [phase, setPhase] = useState<'idle' | 'speaking' | 'listening' | 'feedback' | 'done'>('idle')

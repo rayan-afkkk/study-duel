@@ -36,6 +36,8 @@ import { ArenaTab } from '@/features/ArenaTab'
 import { ShareToGroupDialog } from '@/components/ShareToGroupDialog'
 import { useDocViewer } from '@/components/DocViewer'
 import { cn } from '@/lib/utils'
+import { pregenerate } from '@/lib/pregenerate'
+import { seedDemoExtras } from '@/lib/demo'
 
 const TABS = [
   { id: 'explain', label: 'Explanation', icon: BookOpenText, C: ExplanationTab },
@@ -59,6 +61,13 @@ export default function Workspace() {
   const [share, setShare] = useState(false)
   const ready = useReadiness(id)
   const { open } = useDocViewer()
+
+  // make sure everything for this chapter is being prepared (no-op if already cached)
+  useEffect(() => {
+    if (!doc) return
+    if (doc.isDemo) void seedDemoExtras()
+    else pregenerate(doc.id)
+  }, [doc])
 
   // keep the active tab visible in the horizontally-scrolling tab bar (phones)
   useEffect(() => {

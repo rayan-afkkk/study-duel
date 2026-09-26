@@ -34,9 +34,14 @@ export function FlashcardsTab({ doc }: { doc: StudyDoc }) {
   const cards = useLiveQuery(() => db.cards.where('docId').equals(doc.id).toArray(), [doc.id])
   const hasCards = (cards?.length ?? 0) > 0
   const ai = useAiTask('flashcards', doc.id, P.flashcards(s), {
-    auto: cards !== undefined && !hasCards,
     onData: (d) => syncCards(doc.id, d),
   })
+  // The deck lives in IndexedDB; once we know it's empty, generate it (the old version waited for a flag
+  // that was only true AFTER the first check, so new chapters stayed empty forever).
+  const { status: aiStatus, run: runAi } = ai
+  useEffect(() => {
+    if (cards !== undefined && cards.length === 0 && aiStatus === 'idle') runAi()
+  }, [cards, aiStatus, runAi])
   const [mode, setMode] = useState<'due' | 'all'>('due')
   const [queue, setQueue] = useState<string[]>([])
   const [flipped, setFlipped] = useState(false)

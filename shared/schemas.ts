@@ -22,6 +22,7 @@ export const TASKS = [
   'explainBack',
   'ocr',
   'pickSimulation',
+  'experiment',
 ] as const
 export type AiTask = (typeof TASKS)[number]
 
@@ -143,6 +144,34 @@ export const ExplainBackSchema = z.object({
 
 export const OcrSchema = z.object({ text: str })
 
+export const ExperimentSchema = z.object({
+  applicable: z.boolean().default(true),
+  title: str,
+  goal: z.string().default(''),
+  background: z.string().default(''),
+  variables: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        unit: z.string().nullish(),
+        min: z.coerce.number(),
+        max: z.coerce.number(),
+        step: z.coerce.number().nullish(),
+        value: z.coerce.number().nullish(),
+      }),
+    )
+    .default([]),
+  outputs: z
+    .array(z.object({ id: z.string(), label: z.string(), unit: z.string().nullish(), formula: z.string(), explain: z.string().nullish() }))
+    .default([]),
+  chart: z.object({ x: z.string(), y: z.string() }).nullish(),
+  steps: strList,
+  questions: z.array(z.object({ q: str, a: str })).default([]),
+  activity: strList,
+  simulationId: z.string().nullish(),
+})
+
 export const PickSimulationSchema = z.object({ simulationId: str, reason: z.string().default('') })
 
 export const SCHEMAS = {
@@ -159,6 +188,7 @@ export const SCHEMAS = {
   explainBack: ExplainBackSchema,
   ocr: OcrSchema,
   pickSimulation: PickSimulationSchema,
+  experiment: ExperimentSchema,
 } satisfies Record<AiTask, z.ZodTypeAny>
 
 export type ExplainData = z.infer<typeof ExplainSchema>
@@ -176,6 +206,7 @@ export type DoubtData = z.infer<typeof DoubtSchema>
 export type ExplainBackData = z.infer<typeof ExplainBackSchema>
 export type OcrData = z.infer<typeof OcrSchema>
 export type PickSimulationData = z.infer<typeof PickSimulationSchema>
+export type ExperimentData = z.infer<typeof ExperimentSchema>
 
 export interface TaskDataMap {
   explain: ExplainData
@@ -191,6 +222,7 @@ export interface TaskDataMap {
   explainBack: ExplainBackData
   ocr: OcrData
   pickSimulation: PickSimulationData
+  experiment: ExperimentData
 }
 
 export type Language = 'en' | 'ur' | 'roman'

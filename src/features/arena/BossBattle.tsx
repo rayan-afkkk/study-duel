@@ -4,9 +4,7 @@ import { Heart, Skull, Swords, Volume2, VolumeX, Zap } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import type { StudyDoc } from '@/lib/db'
 import type { Mcq } from '@shared/schemas'
-import { useAiTask } from '@/hooks/useAiTask'
-import { useSettings } from '@/lib/settings'
-import { P } from '@/lib/params'
+import { useMcqSet } from '@/lib/questions'
 import { AsyncState } from '@/components/AsyncState'
 import { Button } from '@/components/ui/button'
 import { addMistake } from '@/lib/mistakes'
@@ -59,8 +57,7 @@ function BossSvg({ hurt, dead, rage }: { hurt: boolean; dead: boolean; rage: boo
 }
 
 export function BossBattle({ doc }: { doc: StudyDoc }) {
-  const s = useSettings()
-  const ai = useAiTask('mcqs', doc.id, P.mcqs(s), { auto: true })
+  const ai = useMcqSet(doc.id, 'boss')
   const [phase, setPhase] = useState<'intro' | 'fight' | 'won' | 'lost'>('intro')
   const [qs, setQs] = useState<Mcq[]>([])
   const [i, setI] = useState(0)

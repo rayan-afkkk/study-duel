@@ -10,6 +10,7 @@ import { Textarea } from './ui/textarea'
 import { Progress } from './ui/progress'
 import { ingestImages, ingestPdf, ingestText } from '@/lib/ingest'
 import { awardXp } from '@/lib/progress'
+import { pregenerate } from '@/lib/pregenerate'
 import { cn } from '@/lib/utils'
 
 type Mode = 'pdf' | 'photo' | 'text'
@@ -27,6 +28,7 @@ export function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const cameraInput = useRef<HTMLInputElement>(null)
 
   const done = async (id: string) => {
+    pregenerate(id)
     await awardXp(5, 'Uploaded a chapter')
     toast.success('Chapter ready! +5 🪙')
     onOpenChange(false)

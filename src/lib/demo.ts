@@ -15,15 +15,34 @@ import {
   DEMO_PODCAST,
   DEMO_SUMMARY,
   DEMO_TITLE,
+  DEMO_BOSS,
+  DEMO_VOICE,
+  DEMO_BATTLE,
+  DEMO_EXPERIMENT,
 } from './demoContent'
+import { getCached } from './aiClient'
 import { PROGRESS_EVENT } from './progress'
 import { todayISO } from './utils'
 
 export const DEMO_ID = 'demo-force-motion'
 
+/** Newer demo content (separate question sets, chapter experiment) — added to existing demo chapters too. */
+export async function seedDemoExtras() {
+  const extras: [Parameters<typeof putCached>[0], Record<string, unknown>, unknown][] = [
+    ['mcqs', P.mcqs(D, 'boss'), DEMO_BOSS],
+    ['mcqs', P.mcqs(D, 'voice'), DEMO_VOICE],
+    ['mcqs', P.mcqs(D, 'battle'), DEMO_BATTLE],
+    ['experiment', P.experiment(D), DEMO_EXPERIMENT],
+  ]
+  for (const [task, params, data] of extras) if (!(await getCached(task, DEMO_ID, params))) await putCached(task, DEMO_ID, params, data)
+}
+
 export async function loadDemoData() {
   const existing = await db.documents.get(DEMO_ID)
-  if (existing) return DEMO_ID
+  if (existing) {
+    await seedDemoExtras()
+    return DEMO_ID
+  }
 
   await db.transaction('rw', [db.documents, db.chunks, db.aiCache, db.cards, db.attempts, db.xp, db.mistakes, db.meta], async () => {
     await db.documents.add({
@@ -98,6 +117,7 @@ export async function loadDemoData() {
     await db.meta.put({ key: 'bestStreak', value: 2 })
     await db.meta.put({ key: 'lastStudyDate', value: todayISO(yesterday) })
   })
+  await seedDemoExtras()
   window.dispatchEvent(new CustomEvent(PROGRESS_EVENT))
   return DEMO_ID
 }

@@ -464,3 +464,87 @@ export const DEMO_PAPERS: Record<string, GuessPaperData> = {
   'O-Levels': paper('O-Levels', 'O-Level Physics 5054 — Practice Paper: Forces & Motion', 90),
   Custom: paper('Custom', 'Custom Practice Paper — Force & Motion', 90),
 }
+
+const q = (question: string, options: string[], answerIndex: number, explanation: string, page: number, topic: string) => ({
+  question,
+  options,
+  answerIndex,
+  explanation,
+  page,
+  topic,
+})
+
+/** Boss battle: harder application & reasoning questions (different from the MCQ test). */
+export const DEMO_BOSS: McqsData = {
+  questions: [
+    q('A 1200 kg car accelerates at 2 m/s². What net force acts on it?', ['600 N', '1202 N', '2400 N', '24000 N'], 2, 'F = ma = 1200 × 2 = 2400 N.', 3, "Newton's second law"),
+    q('The same force acts on a 2 kg and a 6 kg trolley. How does the 2 kg trolley’s acceleration compare?', ['One-third', 'The same', 'Three times', 'Six times'], 2, 'a = F/m, so one-third the mass gives three times the acceleration.', 3, "Newton's second law"),
+    q('A tablecloth is pulled out very fast and the dishes stay put. Which idea explains this?', ['Friction increases', 'Inertia of the dishes', 'Action–reaction', 'Gravity decreases'], 1, 'The dishes resist a change in their state of rest — inertia.', 2, "Newton's first law"),
+    q('A 50 kg astronaut goes to the Moon (g = 1.6 m/s²). What is her weight there?', ['50 N', '31 N', '80 N', '500 N'], 2, 'W = mg = 50 × 1.6 = 80 N. Her mass is still 50 kg.', 3, 'Mass and weight'),
+    q('A 0.15 kg ball moving at 20 m/s is stopped. What is the change in its momentum?', ['0.15 kg m/s', '3 kg m/s', '20 kg m/s', '133 kg m/s'], 1, 'Δp = m × Δv = 0.15 × 20 = 3 kg m/s.', 5, 'Momentum'),
+    q('Why is it easier to push a loaded trolley once it is already moving?', ['Its mass decreases', 'Kinetic friction is less than limiting friction', 'Gravity stops acting', 'Momentum is zero'], 1, 'Sliding (kinetic) friction is smaller than the maximum static (limiting) friction.', 6, 'Friction'),
+    q('A 3 kg gun fires a 0.01 kg bullet at 300 m/s. What is the recoil speed of the gun?', ['0.1 m/s', '1 m/s', '3 m/s', '10 m/s'], 1, 'Momentum is conserved: 0.01 × 300 = 3 × v, so v = 1 m/s backwards.', 5, 'Momentum'),
+    q('If the speed of a car on a curve doubles, the centripetal force needed becomes…', ['Half', 'The same', 'Double', 'Four times'], 3, 'F = mv²/r, so doubling v makes F four times larger.', 6, 'Circular motion'),
+    q('You push a wall with 100 N. What force does the wall exert on you?', ['0 N', '50 N', '100 N towards you', '200 N'], 2, "Newton's third law: equal (100 N) and opposite.", 4, "Newton's third law"),
+    q('Airbags reduce injuries mainly because they…', ['Reduce the momentum change', 'Increase the time of impact', 'Increase the mass of the passenger', 'Remove friction'], 1, 'Same change in momentum over a longer time means a smaller force (F = Δp/t).', 5, 'Momentum'),
+  ],
+}
+
+/** Voice quiz: short questions that are easy to read aloud and answer by voice. */
+export const DEMO_VOICE: McqsData = {
+  questions: [
+    q('What is the unit of force?', ['Joule', 'Newton', 'Watt', 'Metre'], 1, 'Force is measured in newtons.', 1, 'Force'),
+    q('Which law is also called the law of inertia?', ['First law', 'Second law', 'Third law', 'Ohm’s law'], 0, "Newton's first law is the law of inertia.", 2, "Newton's first law"),
+    q('What does F equal in Newton’s second law?', ['m plus a', 'm times a', 'm divided by a', 'a squared'], 1, 'F = m × a.', 3, "Newton's second law"),
+    q('Which stays the same on the Moon?', ['Weight', 'Mass', 'Pull of gravity', 'Spring balance reading'], 1, 'Mass never changes; weight does.', 3, 'Mass and weight'),
+    q('Momentum equals mass times what?', ['Time', 'Force', 'Velocity', 'Distance'], 2, 'p = m × v.', 5, 'Momentum'),
+    q('Which friction is the smallest?', ['Static', 'Sliding', 'Limiting', 'Rolling'], 3, 'Rolling friction is the smallest.', 6, 'Friction'),
+    q('Rockets fly because of which law?', ['First law', 'Second law', 'Third law', 'Law of gravity'], 2, 'Action (gases down) and reaction (rocket up).', 4, "Newton's third law"),
+    q('Do action and reaction act on the same body?', ['Yes', 'No', 'Only at rest', 'Only in space'], 1, 'They act on different bodies.', 4, "Newton's third law"),
+  ],
+}
+
+/** Live battle: quick-fire questions for multiplayer. */
+export const DEMO_BATTLE: McqsData = {
+  questions: [
+    q('Seat belts protect us from the effects of…', ['Friction', 'Inertia', 'Gravity', 'Magnetism'], 1, 'Your body keeps moving when the car stops — inertia.', 2, "Newton's first law"),
+    q('1 newton equals…', ['1 kg m/s', '1 kg m/s²', '1 kg/m', '1 J/s'], 1, '1 N = 1 kg m/s².', 3, "Newton's second law"),
+    q('Which is a NON-contact force?', ['Friction', 'Tension', 'Gravity', 'Normal force'], 2, 'Gravity acts from a distance.', 1, 'Force'),
+    q('Force is a…', ['Scalar', 'Vector', 'Unit', 'Constant'], 1, 'It has magnitude and direction.', 1, 'Force'),
+    q('Ball bearings are used to…', ['Increase friction', 'Reduce friction', 'Add weight', 'Store energy'], 1, 'They replace sliding with rolling friction.', 6, 'Friction'),
+    q('Impulse is equal to change in…', ['Speed', 'Mass', 'Momentum', 'Weight'], 2, 'Impulse = F × t = Δp.', 5, 'Momentum'),
+    q('Weight is measured with a…', ['Physical balance', 'Spring balance', 'Metre rule', 'Stopwatch'], 1, 'A spring balance measures force (weight).', 3, 'Mass and weight'),
+    q('Balanced forces cause…', ['Acceleration', 'No change in motion', 'Circular motion', 'Recoil'], 1, 'Net force zero → state of motion unchanged.', 1, 'Force'),
+  ],
+}
+
+export const DEMO_EXPERIMENT = {
+  applicable: true,
+  title: 'The Trolley Lab: Force, Mass & Friction',
+  goal: 'Discover how pushing force, mass and friction decide how fast a trolley speeds up.',
+  background:
+    'Newton’s second law says acceleration = net force ÷ mass. Friction pushes back against your push, so only the force left over (the net force) makes the trolley accelerate.',
+  variables: [
+    { id: 'force', label: 'Your push (F)', unit: 'N', min: 0, max: 200, step: 5, value: 60 },
+    { id: 'mass', label: 'Trolley mass (m)', unit: 'kg', min: 1, max: 50, step: 1, value: 10 },
+    { id: 'mu', label: 'Friction coefficient (μ)', unit: '', min: 0, max: 0.8, step: 0.05, value: 0.2 },
+  ],
+  outputs: [
+    { id: 'friction', label: 'Friction force', unit: 'N', formula: 'mu * mass * 9.8', explain: 'f = μmg — heavier trolleys have more friction.' },
+    { id: 'net', label: 'Net force', unit: 'N', formula: 'max(0, force - mu * mass * 9.8)', explain: 'What is left of your push after friction.' },
+    { id: 'acc', label: 'Acceleration', unit: 'm/s²', formula: 'max(0, force - mu * mass * 9.8) / mass', explain: 'a = F_net / m' },
+  ],
+  chart: { x: 'force', y: 'acc' },
+  steps: [
+    'Set friction to 0 and double your push. What happens to the acceleration?',
+    'Keep the push at 60 N and increase the mass. Why does the trolley speed up more slowly?',
+    'Raise friction until the acceleration becomes 0. This is the push needed just to start moving.',
+    'Look at the graph: why is it flat at the start and then a straight line?',
+  ],
+  questions: [
+    { q: 'Why does the graph stay at zero for small pushes?', a: 'Friction is bigger than the push, so the net force is zero and the trolley does not accelerate.' },
+    { q: 'If you double the mass AND double the push (no friction), what happens to the acceleration?', a: 'It stays the same, because a = F/m and both doubled.' },
+  ],
+  activity: [],
+  simulationId: 'incline',
+}
