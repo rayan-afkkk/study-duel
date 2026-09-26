@@ -547,4 +547,5 @@ export const DEMO_EXPERIMENT = {
   ],
   activity: [],
   simulationId: 'incline',
+  visual: { type: 'meter', output: 'acc', max: 20, label: 'Acceleration' },
 }

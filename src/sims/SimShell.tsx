@@ -30,7 +30,14 @@ export function useCanvasLoop(
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, w, h)
-      drawRef.current(ctx, w, h, dt, t, getComputedStyle(canvas).color)
+      // skip frames while the canvas is still being laid out (0-width panels → negative radii)
+      if (w >= 60 && h >= 60) {
+        try {
+          drawRef.current(ctx, w, h, dt, t, getComputedStyle(canvas).color)
+        } catch (err) {
+          console.warn('[sim] frame skipped', err)
+        }
+      }
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -62,6 +69,42 @@ export function Readout({ label, value, formula }: { label: string; value: strin
       {formula && <p className="font-mono text-[11px] text-gold">{formula}</p>}
     </div>
   )
+}
+
+/** Small on/off pill for simulations. */
+export function Toggle({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <div>
+      <p className="mb-2 text-sm text-muted-foreground">{label}</p>
+      <div className="flex gap-1 rounded-full bg-secondary p-1">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${value === o.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Particles bouncing in a box — shared by several chemistry sims. */
+export interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  kind?: number
+}
+
+export function spawn(n: number, w: number, h: number, speed: number, kind = 0): Particle[] {
+  return Array.from({ length: n }, () => {
+    const a = Math.random() * Math.PI * 2
+    return { x: Math.random() * w, y: Math.random() * h, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, kind }
+  })
 }
 
 export function SimShell({ canvas, controls, readouts, note }: { canvas: ReactNode; controls: ReactNode; readouts: ReactNode; note?: string }) {

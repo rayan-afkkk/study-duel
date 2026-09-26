@@ -4,7 +4,8 @@ import type { StudyDoc } from '@/lib/db'
 import { useAiTask } from '@/hooks/useAiTask'
 import { P } from '@/lib/params'
 import { useSettings } from '@/lib/settings'
-import { SIMS } from '@/sims'
+import { SIMS, type Subject } from '@/sims'
+import { Segmented } from '@/components/ui/segmented'
 import { AsyncState } from '@/components/AsyncState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,9 @@ export function ExperimentsTab({ doc }: { doc: StudyDoc }) {
   })
   const matched = SIMS.find((x) => x.id === ai.data?.simulationId)
   const [active, setActive] = useState<string | undefined>()
+  const [subject, setSubject] = useState<'All' | Subject | undefined>()
+  const shownSubject = subject ?? matched?.subject ?? 'All'
+  const list = SIMS.filter((x) => shownSubject === 'All' || x.subject === shownSubject)
   const shownId = active ?? matched?.id
   const sim = SIMS.find((x) => x.id === shownId)
 
@@ -41,14 +45,24 @@ export function ExperimentsTab({ doc }: { doc: StudyDoc }) {
           </div>
 
           <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Shapes className="h-4 w-4 text-muted-foreground" />
-              <p className="section-label">{matched ? 'Animated simulation for this topic' : 'More animated simulations'}</p>
+            <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-2">
+                <Shapes className="h-4 w-4 text-muted-foreground" />
+                <p className="section-label">Animated experiments · {SIMS.length} in the lab</p>
+              </div>
+              <Segmented
+                size="sm"
+                className="md:w-[420px]"
+                value={shownSubject}
+                onChange={(v) => setSubject(v)}
+                options={(['All', 'Physics', 'Chemistry', 'Biology'] as const).map((v) => ({ value: v, label: v }))}
+              />
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {SIMS.map((x) => (
+            <div className="flex flex-wrap gap-2">
+              {list.map((x) => (
                 <button
                   key={x.id}
+                  data-sim={x.id}
                   onClick={() => setActive(shownId === x.id ? '' : x.id)}
                   className={cn(
                     'flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition',

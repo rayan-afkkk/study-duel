@@ -224,6 +224,10 @@ If the chapter has a quantitative relationship (physics, chemistry, biology rate
   the variable ids, numbers, + - * / ^ ( ), and functions sin cos tan sqrt abs log log10 exp min max pow, constants PI and E,
   and rad(x) to convert degrees to radians. Example: "force / mass" or "max(0, (force - mu*mass*9.8) / mass)".
 - "chart": {x: a variable id, y: an output id} — the relationship worth graphing.
+- "visual": an animated scene driven by ONE output: {type, output: output id, max: the output's largest sensible value, label}.
+  type is one of: "bubbles" (gas/oxygen produced, rate of reaction), "particles" (speed/energy/temperature/pressure of particles),
+  "fill" (level, volume, concentration, amount in a container), "growth" (growth, height, population, yield),
+  "thermometer" (temperature, heat), "meter" (anything else: current, speed, force, pH…).
 - "steps": 3–5 guided steps ("Set mass to 2 kg, then double the force. What happens to acceleration?").
 - "questions": 2–3 {q, a} thinking questions about what the student observed.
 If the chapter is NOT quantitative (history, literature, languages, most social studies), set "applicable": false, leave variables/outputs empty,

@@ -5,6 +5,7 @@ import { Beaker, ChevronDown, ClipboardList, FlaskConical, HelpCircle, Lightbulb
 import type { ExperimentData } from '@shared/schemas'
 import { compileFormula, fmt } from '@/lib/formula'
 import { Param } from '@/sims/SimShell'
+import { LabVisual } from './LabVisual'
 import { cn, isUrduScript } from '@/lib/utils'
 
 const tip = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, color: 'hsl(var(--foreground))' }
@@ -22,6 +23,22 @@ export function CustomLab({ exp }: { exp: ExperimentData }) {
   )
   const [open, setOpen] = useState<number | null>(null)
   const rtl = isUrduScript(exp.title)
+
+  const visOut = outputs.find((o) => o.id === exp.visual?.output) ?? outputs[outputs.length - 1]
+  // largest value the output can reach across the slider ranges (used to scale the animation)
+  const visMax = useMemo(() => {
+    if (exp.visual?.max && exp.visual.max > 0) return exp.visual.max
+    if (!visOut?.fn) return 1
+    let m = 0
+    for (let i = 0; i < 200; i++) {
+      const sample = Object.fromEntries(vars.map((v) => [v.id, v.min + Math.random() * (v.max - v.min)]))
+      const y = visOut.fn(sample)
+      if (Number.isFinite(y)) m = Math.max(m, Math.abs(y))
+    }
+    return m || 1
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exp, visOut])
+  const visType = exp.visual?.type ?? 'meter'
 
   const chartVar = vars.find((v) => v.id === exp.chart?.x) ?? vars[0]
   const chartOut = outputs.find((o) => o.id === exp.chart?.y) ?? outputs[0]
@@ -68,6 +85,16 @@ export function CustomLab({ exp }: { exp: ExperimentData }) {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="surface p-5">
+          {visOut?.fn && (
+            <div className="mb-5 h-64 overflow-hidden rounded-2xl bg-background/60">
+              <LabVisual
+                type={visType}
+                level={Math.abs(visOut.fn(values)) / visMax}
+                label={exp.visual?.label || visOut.label}
+                value={`${fmt(visOut.fn(values))} ${visOut.unit ?? ''}`}
+              />
+            </div>
+          )}
           {chartVar && chartOut && (
             <>
               <p className="mb-3 text-sm font-semibold">

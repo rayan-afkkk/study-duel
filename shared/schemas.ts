@@ -170,6 +170,8 @@ export const ExperimentSchema = z.object({
   questions: z.array(z.object({ q: str, a: str })).default([]),
   activity: strList,
   simulationId: z.string().nullish(),
+  /** animated scene driven by one output: bubbles | particles | fill | growth | thermometer | meter */
+  visual: z.object({ type: z.string(), output: z.string(), max: z.coerce.number().nullish(), label: z.string().nullish() }).nullish(),
 })
 
 export const PickSimulationSchema = z.object({ simulationId: str, reason: z.string().default('') })
