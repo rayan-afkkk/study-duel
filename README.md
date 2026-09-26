@@ -54,20 +54,24 @@ All AI calls go through **one** endpoint, `POST /api/ai` with `{ task, payload }
 | Variable | What |
 | --- | --- |
 | `GEMINI_API_KEYS` | Primary provider. Comma-separated keys from <https://aistudio.google.com/apikey>. Also used for **vision** (book-page OCR and handwriting grading). |
-| `GEMINI_MODEL` | Optional, default `gemini-2.5-flash` |
+| `GEMINI_MODELS` | Optional model fallback list, default `gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash` (the `-latest` aliases never retire) |
 | `GROQ_API_KEYS` | Secondary provider. Comma-separated keys from <https://console.groq.com/keys> |
-| `GROQ_MODEL` | Optional, default `llama-3.3-70b-versatile` |
+| `GROQ_MODELS` | Optional, default `openai/gpt-oss-120b,llama-3.3-70b-versatile` |
 | `EXTRA_PROVIDER_BASE_URL` | Optional third provider: any OpenAI-compatible API (freellmapi, OpenRouter, Together…), e.g. `https://openrouter.ai/api/v1` |
 | `EXTRA_PROVIDER_API_KEYS` | Comma-separated keys for it |
-| `EXTRA_PROVIDER_MODEL` | Model name for it |
+| `EXTRA_PROVIDER_MODELS` | Model name(s) for it, comma-separated |
+| `EXTRA_PROVIDER_NAME` | Optional label for logs (e.g. `cerebras`) |
 | `EXTRA_PROVIDER_JSON_MODE` | `false` if that API rejects `response_format: json_object` |
-| `AI_TIMEOUT_MS` | Per-attempt timeout (default 45000) |
+| `AI_TIMEOUT_MS` | Per-attempt timeout (default 25000); a whole request is capped at ~52 s to fit Vercel's 60 s limit |
 | `ALLOWED_ORIGINS` | CORS for `/api/ai` (default `*`) |
 
 **How the fallback works** (`api/_lib/runner.ts`):
 
 1. Providers are tried in order: Gemini, then Groq, then the extra provider (only those with keys).
-2. For each provider, every key is tried in turn. On a **429 / quota / 5xx / 401-403 / timeout** it moves to the next key. When all keys are exhausted, it moves to the next provider. A key that just returned a 429 is tried last for the next 60 s.
+2. Each provider can have several **models**, and each model is tried with every key:
+   - **Key problems** (429 rate limit / quota / 401-403) → next key.
+   - **Model problems** (503 overloaded, 404 model retired, 5xx, timeout) → other keys won't help, so jump to the next model or provider.
+   - A key that just hit a 429 is tried last for the next 60 s.
 3. Every attempt is logged, showing only the last 4 characters of the key: `[ai] ✗ gemini key …a1b2 → HTTP 429`.
 4. Structured tasks ask for JSON. The JSON schema (generated from zod) goes in the prompt, and the reply is validated with **zod**. If it's invalid, the whole chain is retried **once** with the validation error attached.
 5. Responses share one envelope: `{ ok: true, task, provider, model, data, ms }` or `{ ok: false, error, attempts }`.

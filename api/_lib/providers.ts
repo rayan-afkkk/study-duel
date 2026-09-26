@@ -26,7 +26,7 @@ export class ProviderError extends Error {
   constructor(
     message: string,
     public status: number,
-    /** true → try the next key / provider */
+    /** true → try the next KEY for this model; false → skip to the next model/provider */
     public retryable: boolean,
   ) {
     super(message)
@@ -41,10 +41,15 @@ export const splitKeys = (v?: string) =>
 
 export const maskKey = (k: string) => `…${k.slice(-4)}`
 
+/**
+ * Key-level problems (rate limit / quota / bad key) → try the next key.
+ * Model-level problems (overloaded 503, model removed 404, server errors) → other keys won't help,
+ * so move straight to the next model/provider.
+ */
 function classify(status: number, body: string): ProviderError {
   const quota = /quota|rate.?limit|resource.?exhausted|exceeded/i.test(body)
-  const retryable = status === 429 || status >= 500 || status === 401 || status === 403 || quota
-  return new ProviderError(`HTTP ${status}: ${body.slice(0, 240)}`, status, retryable)
+  const keyLevel = status === 429 || status === 401 || status === 403 || quota
+  return new ProviderError(`HTTP ${status}: ${body.slice(0, 240)}`, status, keyLevel)
 }
 
 async function postJson(url: string, headers: Record<string, string>, body: unknown, signal: AbortSignal) {
@@ -63,8 +68,13 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   }
 }
 
-function gemini(): Provider {
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+/** Comma-separated model list from env (plural or legacy singular variable), else defaults. */
+const models = (plural: string, singular: string, defaults: string[]) => {
+  const list = splitKeys(process.env[plural] || process.env[singular])
+  return list.length ? list : defaults
+}
+
+function gemini(model: string): Provider {
   return {
     name: 'gemini',
     model,
@@ -135,30 +145,37 @@ function openAiCompatible(opts: {
   }
 }
 
-/** Providers in fallback order: Gemini → Groq → optional extra OpenAI-compatible provider. */
+/**
+ * Fallback chain, one entry per (provider, model): Gemini models → Groq models → optional extra
+ * OpenAI-compatible provider (e.g. Cerebras). Each entry is tried with every key before moving on.
+ */
 export function getProviders(): Provider[] {
   const list: Provider[] = [
-    gemini(),
-    openAiCompatible({
-      name: 'groq',
-      baseUrl: 'https://api.groq.com/openai/v1',
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-      keys: splitKeys(process.env.GROQ_API_KEYS),
-      jsonMode: true,
-      contextBudget: 24_000,
-    }),
-  ]
-  if (process.env.EXTRA_PROVIDER_BASE_URL) {
-    list.push(
+    // "-latest" aliases always point at Google's current model, so they don't break when versions retire.
+    ...models('GEMINI_MODELS', 'GEMINI_MODEL', ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']).map(gemini),
+    ...models('GROQ_MODELS', 'GROQ_MODEL', ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile']).map((model) =>
       openAiCompatible({
-        name: 'extra',
-        baseUrl: process.env.EXTRA_PROVIDER_BASE_URL,
-        model: process.env.EXTRA_PROVIDER_MODEL || 'auto',
-        keys: splitKeys(process.env.EXTRA_PROVIDER_API_KEYS),
-        jsonMode: process.env.EXTRA_PROVIDER_JSON_MODE !== 'false',
+        name: 'groq',
+        baseUrl: 'https://api.groq.com/openai/v1',
+        model,
+        keys: splitKeys(process.env.GROQ_API_KEYS),
+        jsonMode: true,
         contextBudget: 24_000,
       }),
-    )
+    ),
+  ]
+  if (process.env.EXTRA_PROVIDER_BASE_URL) {
+    for (const model of models('EXTRA_PROVIDER_MODELS', 'EXTRA_PROVIDER_MODEL', ['auto']))
+      list.push(
+        openAiCompatible({
+          name: process.env.EXTRA_PROVIDER_NAME || 'extra',
+          baseUrl: process.env.EXTRA_PROVIDER_BASE_URL,
+          model,
+          keys: splitKeys(process.env.EXTRA_PROVIDER_API_KEYS),
+          jsonMode: process.env.EXTRA_PROVIDER_JSON_MODE !== 'false',
+          contextBudget: 24_000,
+        }),
+      )
   }
   return list.filter((p) => p.keys.length > 0)
 }

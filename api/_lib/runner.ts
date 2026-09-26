@@ -49,7 +49,9 @@ function trimContext(ctx: string, budget: number) {
   return `${ctx.slice(0, head)}\n\n[… middle of document trimmed for length …]\n\n${ctx.slice(-(budget - head))}`
 }
 
-const timeoutMs = () => Number(process.env.AI_TIMEOUT_MS) || 45_000
+const timeoutMs = () => Number(process.env.AI_TIMEOUT_MS) || 25_000
+/** Stay inside Vercel's 60s function limit across all attempts. */
+const TOTAL_BUDGET_MS = 52_000
 
 /** Keys that recently hit a rate limit are tried last for 60s (per warm serverless instance). */
 const cooldown = new Map<string, number>()
@@ -66,13 +68,16 @@ async function callWithFallback(
   providers: Provider[],
   build: (p: Provider) => ProviderRequest,
   attempts: Attempt[],
+  deadline = Date.now() + TOTAL_BUDGET_MS,
 ): Promise<{ text: string; provider: Provider }> {
   for (const provider of providers) {
     const req = build(provider)
     for (const key of orderKeys(provider.keys)) {
       const started = Date.now()
+      const remaining = deadline - started
+      if (remaining < 3_000) throw new Error('All AI providers failed (out of time)')
       const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), timeoutMs())
+      const timer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs(), remaining))
       try {
         console.log(`[ai] → ${provider.name}/${provider.model} key ${maskKey(key)}`)
         const text = await provider.call(key, req, ctrl.signal)
@@ -85,13 +90,14 @@ async function callWithFallback(
         attempts.push({ provider: provider.name, key: maskKey(key), error: msg.slice(0, 200) })
         console.warn(`[ai] ✗ ${provider.name} key ${maskKey(key)} → ${msg.slice(0, 160)}`)
         if (e instanceof ProviderError && e.status === 429) cooldown.set(key, Date.now() + COOLDOWN_MS)
-        const retryable = aborted || !(e instanceof ProviderError) || e.retryable
-        if (!retryable) break // e.g. 400 bad request: this provider can't handle it, move on
+        // timeout / overloaded / model gone → another key won't help, go to the next model
+        const retryable = !aborted && (!(e instanceof ProviderError) || e.retryable)
+        if (!retryable) break
       } finally {
         clearTimeout(timer)
       }
     }
-    console.warn(`[ai] provider ${provider.name} exhausted, falling back`)
+    console.warn(`[ai] ${provider.name}/${provider.model} exhausted, falling back`)
   }
   throw new Error('All AI providers failed')
 }
@@ -145,7 +151,7 @@ export async function runAiRequest(body: unknown): Promise<{ status: number; bod
     })
 
   try {
-    let { text, provider } = await callWithFallback(providers, makeBuilder(), attempts)
+    let { text, provider } = await callWithFallback(providers, makeBuilder(), attempts, started + TOTAL_BUDGET_MS)
     let parsed = validate(schema, text)
     if (!parsed.ok) {
       console.warn(`[ai] invalid JSON from ${provider.name} (${parsed.error}); retrying once`)
@@ -155,6 +161,7 @@ export async function runAiRequest(body: unknown): Promise<{ status: number; bod
           `IMPORTANT: your previous answer was rejected (${parsed.error}). Return ONLY valid JSON that exactly matches the schema.`,
         ),
         attempts,
+        started + TOTAL_BUDGET_MS,
       ))
       parsed = validate(schema, text)
       if (!parsed.ok) throw new Error(`AI returned invalid data twice: ${parsed.error}`)
