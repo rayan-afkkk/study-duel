@@ -8,12 +8,12 @@ import { P } from '@/lib/params'
 import { AsyncState } from '@/components/AsyncState'
 import { TeacherAvatar } from '@/components/TeacherAvatar'
 import { Button } from '@/components/ui/button'
-import { SpeechQueue, loadVoices, pickVoices, langCode, ttsSupported } from '@/lib/speech'
+import { SpeechQueue, loadVoices, pickHostVoices, langCode, ttsSupported } from '@/lib/speech'
 import { cn } from '@/lib/utils'
 
 const HOSTS = {
-  A: { name: 'Ayesha', variant: 'host-a' as const, pitch: 1.2 },
-  B: { name: 'Bilal', variant: 'host-b' as const, pitch: 0.85 },
+  A: { name: 'Ayesha', variant: 'host-a' as const, pitch: 1.08 },
+  B: { name: 'Bilal', variant: 'host-b' as const, pitch: 0.92 },
 }
 
 export function PodcastTab({ doc }: { doc: StudyDoc }) {
@@ -32,12 +32,14 @@ export function PodcastTab({ doc }: { doc: StudyDoc }) {
     const q = new SpeechQueue({ onIndex: setIndex, onState: setState, onBoundary: () => setPulse((p) => p + 1) })
     queue.current = q
     loadVoices().then(() => {
-      const voices = pickVoices(s.language, 2)
+      // Ayesha gets a female voice and Bilal a male one when the device has them
+      const [va, vb] = pickHostVoices(s.language)
+      const sameVoice = va === vb
       q.load(
         lines.map((l) => {
           const host = l.speaker.toUpperCase().startsWith('B') ? 'B' : 'A'
-          // two different voices when available, otherwise the same voice at different pitches
-          return { text: l.text, voice: voices[host === 'A' ? 0 : Math.min(1, voices.length - 1)], pitch: HOSTS[host].pitch, lang: langCode(s.language) }
+          // natural pitch for real voices; only nudge it when both hosts must share one voice
+          return { text: l.text, voice: host === 'A' ? va : vb, pitch: sameVoice ? HOSTS[host].pitch : 1, lang: langCode(s.language) }
         }),
       )
     })

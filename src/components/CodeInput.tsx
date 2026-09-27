@@ -13,7 +13,7 @@ export function CodeInput({ value, onChange, onComplete, className }: { value: s
     if (next.replace(/\s/g, '').length === 6) onComplete?.(next)
   }
   return (
-    <div className={cn('flex justify-center gap-2', className)}>
+    <div className={cn('mx-auto flex w-full max-w-[22rem] justify-center gap-1.5 sm:gap-2', className)}>
       {digits.map((d, i) => (
         <input
           key={i}
@@ -39,7 +39,7 @@ export function CodeInput({ value, onChange, onComplete, className }: { value: s
           onKeyDown={(e) => {
             if (e.key === 'Backspace' && !d.trim() && i > 0) refs.current[i - 1]?.focus()
           }}
-          className="h-14 w-11 rounded-2xl border bg-secondary/50 text-center font-serif text-3xl focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/40 sm:w-14"
+          className="h-14 w-0 min-w-0 max-w-14 flex-1 rounded-xl border bg-secondary/50 text-center font-serif text-3xl focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/40 sm:rounded-2xl"
         />
       ))}
     </div>
