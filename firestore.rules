@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// StudyDuel — Firestore is used ONLY for groups, members, live battles, doubts, focus room and call signaling.
+// StudyDuel — Firestore is used ONLY for groups, members, live battles, doubts, chat, focus room and call signaling.
 // Rule of thumb: only members of a group can read or write anything under groups/{gid}.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -92,6 +92,18 @@ service cloud.firestore {
           allow create: if isMember(gid) && request.resource.data.authorId == me();
           allow delete: if isMember(gid) && resource.data.authorId == me();
         }
+      }
+
+      // Group chat: members read; you post and delete only your own messages (no editing).
+      match /messages/{mid} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid)
+          && request.resource.data.authorId == me()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+        allow update: if false;
+        allow delete: if isMember(gid) && resource.data.authorId == me();
       }
 
       // Shared Pomodoro timer

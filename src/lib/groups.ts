@@ -21,6 +21,8 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -66,6 +68,8 @@ export interface Member {
   level?: number
   focusing?: boolean
   focusSince?: number | null
+  /** last time this member was typing in the group chat (ms since epoch) */
+  typingAt?: number | null
 }
 
 export interface SharedMaterial {
@@ -85,6 +89,7 @@ export const doubtsCol = (gid: string) => collection(fs(), 'groups', gid, 'doubt
 export const repliesCol = (gid: string, did: string) => collection(fs(), 'groups', gid, 'doubts', did, 'replies')
 export const battleRef = (gid: string, bid: string) => doc(fs(), 'groups', gid, 'battles', bid)
 export const playersCol = (gid: string, bid: string) => collection(fs(), 'groups', gid, 'battles', bid, 'players')
+export const messagesCol = (gid: string) => collection(fs(), 'groups', gid, 'messages')
 export const focusRef = (gid: string) => doc(fs(), 'groups', gid, 'focus', 'state')
 export const myGroupsQuery = (uid: string) => query(collection(fs(), 'groups'), where('memberIds', 'array-contains', uid))
 
@@ -334,6 +339,35 @@ export async function postDoubt(gid: string, user: User, text: string, source: {
 
 export const postReply = (gid: string, did: string, user: User, text: string) =>
   addDoc(repliesCol(gid, did), { text, authorId: user.uid, authorName: displayName(user), authorPhoto: user.photoURL ?? null, createdAt: serverTimestamp() })
+
+/* ---------------- Group chat ---------------- */
+
+export const CHAT_MAX = 1000
+
+export interface ChatMessage {
+  text: string
+  authorId: string
+  authorName: string
+  authorPhoto?: string | null
+  createdAt?: Timestamp | null
+}
+
+export const recentMessagesQuery = (gid: string) => query(messagesCol(gid), orderBy('createdAt', 'desc'), limit(150))
+
+export const sendMessage = (gid: string, user: User, text: string) =>
+  addDoc(messagesCol(gid), {
+    text: text.slice(0, CHAT_MAX),
+    authorId: user.uid,
+    authorName: displayName(user),
+    authorPhoto: user.photoURL ?? null,
+    createdAt: serverTimestamp(),
+  })
+
+export const deleteMessage = (gid: string, mid: string) => deleteDoc(doc(fs(), 'groups', gid, 'messages', mid))
+
+/** Tell the group you're typing (null = stopped). Stored on your own member profile. */
+export const setTyping = (gid: string, uid: string, typing: boolean) =>
+  setDoc(doc(membersCol(gid), uid), { typingAt: typing ? Date.now() : null }, { merge: true })
 
 /* ---------------- Focus room ---------------- */
 

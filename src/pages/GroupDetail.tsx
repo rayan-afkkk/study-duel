@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, BarChart3, Copy, FileText, LogOut, MessageCircleQuestion, Phone, QrCode, Swords, Timer, Trophy } from 'lucide-react'
+import { ArrowLeft, BarChart3, Copy, FileText, LogOut, MessageCircle, MessageCircleQuestion, Phone, QrCode, Swords, Timer, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/firebase'
 import { useCollection, useDoc } from '@/hooks/useFirestore'
-import { groupRef, joinUrl, leaveGroup, membersCol, MAX_MEMBERS, syncMyStats, type Group, type Member } from '@/lib/groups'
+import { groupRef, joinUrl, leaveGroup, membersCol, MAX_MEMBERS, recentMessagesQuery, syncMyStats, type ChatMessage, type Group, type Member } from '@/lib/groups'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -20,6 +20,7 @@ import { DoubtBoard } from '@/features/group/DoubtBoard'
 import { FocusRoom } from '@/features/group/FocusRoom'
 import { ReportCard } from '@/features/group/ReportCard'
 import { BattleLauncher } from '@/features/group/BattleLauncher'
+import { GroupChat, unreadCount } from '@/features/group/GroupChat'
 
 export default function GroupDetail() {
   const { gid = '' } = useParams()
@@ -35,6 +36,7 @@ function GroupInner({ gid, uid }: { gid: string; uid: string }) {
   const [params, setParams] = useSearchParams()
   const group = useDoc<Group>(groupRef(gid), [gid])
   const members = useCollection<Member>(membersCol(gid), [gid])
+  const messages = useCollection<ChatMessage>(recentMessagesQuery(gid), [gid])
   const shared = useShared(gid)
   const call = useCall()
   const [inCallCount, setInCallCount] = useState(0)
@@ -55,6 +57,7 @@ function GroupInner({ gid, uid }: { gid: string; uid: string }) {
   const g = group.data
   const list = members.data ?? []
   const inThisCall = call.groupId === gid && call.state.status !== 'idle'
+  const unread = tab === 'chat' ? 0 : unreadCount(gid, messages.data, uid)
 
   const copy = () => {
     navigator.clipboard.writeText(g.inviteCode)
@@ -122,6 +125,10 @@ function GroupInner({ gid, uid }: { gid: string; uid: string }) {
       <Tabs value={tab} onValueChange={(t) => setParams({ tab: t })}>
         <TabsList className="flex w-full justify-start overflow-x-auto no-scrollbar">
           <TabsTrigger value="battle"><Swords /> Battle</TabsTrigger>
+          <TabsTrigger value="chat" data-tab="chat">
+            <MessageCircle /> Chat
+            {unread > 0 && <span className="ml-1 rounded-full bg-coral px-1.5 text-[11px] font-bold leading-5 text-white">{unread > 99 ? '99+' : unread}</span>}
+          </TabsTrigger>
           <TabsTrigger value="leaderboard"><Trophy /> Leaderboard</TabsTrigger>
           <TabsTrigger value="shared"><FileText /> Shared</TabsTrigger>
           <TabsTrigger value="doubts"><MessageCircleQuestion /> Doubts</TabsTrigger>
@@ -129,6 +136,7 @@ function GroupInner({ gid, uid }: { gid: string; uid: string }) {
           <TabsTrigger value="report"><BarChart3 /> Report card</TabsTrigger>
         </TabsList>
         <TabsContent value="battle">{user && <BattleLauncher gid={gid} user={user} activeBattleId={g.activeBattleId} />}</TabsContent>
+        <TabsContent value="chat">{user && <GroupChat gid={gid} user={user} messages={messages} members={list} />}</TabsContent>
         <TabsContent value="leaderboard">
           <Leaderboard members={list} me={uid} />
         </TabsContent>
